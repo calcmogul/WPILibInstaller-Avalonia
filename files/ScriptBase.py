@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import os
+import platform
 import subprocess
 import sys
 import time
@@ -11,9 +12,20 @@ jar_name = os.path.splitext(script_name)[0] + ".jar"
 
 jdk_dir = os.path.join(os.path.dirname(jar_name), "..", "jdk", "bin", "java")
 
+env = os.environ.copy()
+if platform.system() == "Linux":
+    # JavaFX requires libjpeg .so version 7 and doesn't include its own, so it
+    # attempts to load the default via libjpeg.so. Some Linux distros symlink
+    # libjpeg.so to libjpeg.so.8 instead of libjpeg.so.7, effectively using a
+    # newer libjpeg version by default.
+    env["LD_PRELOAD"] = "/usr/lib/libjpeg.so.7"
+
 try:
     p = subprocess.Popen(
-        [jdk_dir, "-jar", jar_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        [jdk_dir, "-jar", jar_name],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
     )
 except:
     # Start failed. Try JAVA_HOME.
@@ -27,6 +39,7 @@ except:
             [jdk_dir, "-jar", jar_name],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=env,
         )
     except Exception as e:
         # Really error
